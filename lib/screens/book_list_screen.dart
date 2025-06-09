@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/book_bloc.dart';
 import '../models/book.dart';
+import '../widgets/coin_animation.dart';
 import 'book_reader_screen.dart';
 
 class BookListScreen extends StatelessWidget {
@@ -43,7 +44,7 @@ class BookListScreen extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.monetization_on,
-                        color: Colors.deepPurple.shade700,
+                        color: Colors.yellow.shade700,
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -121,13 +122,21 @@ class BookListScreen extends StatelessWidget {
   }
 }
 
-class ChapterListScreen extends StatelessWidget {
+class ChapterListScreen extends StatefulWidget {
   final Book book;
 
   const ChapterListScreen({
     super.key,
     required this.book,
   });
+
+  @override
+  State<ChapterListScreen> createState() => _ChapterListScreenState();
+}
+
+class _ChapterListScreenState extends State<ChapterListScreen> {
+  final GlobalKey _coinBalanceKey = GlobalKey();
+  final Map<int, GlobalKey> _unlockButtonKeys = {};
 
   @override
   Widget build(BuildContext context) {
@@ -139,6 +148,7 @@ class ChapterListScreen extends StatelessWidget {
               title: Text(state.book.title),
               actions: [
                 Container(
+                  key: _coinBalanceKey,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -150,7 +160,7 @@ class ChapterListScreen extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.monetization_on,
-                        color: Colors.deepPurple.shade700,
+                        color: Colors.yellow.shade700,
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -166,47 +176,74 @@ class ChapterListScreen extends StatelessWidget {
                 ),
               ],
             ),
-            body: ListView.builder(
-              itemCount: state.book.chapters.length,
-              itemBuilder: (context, index) {
-                final chapter = state.book.chapters[index];
-                return Card(
-                  margin: const EdgeInsets.all(8.0),
-                  child: ListTile(
-                    title: Text(chapter.title),
-                    subtitle: Text(
-                      chapter.isUnlocked
-                          ? '${chapter.pages.length} pages'
-                          : 'Unlock for ${chapter.unlockCost} coins',
-                    ),
-                    trailing: chapter.isUnlocked
-                        ? const Icon(Icons.arrow_forward_ios)
-                        : ElevatedButton(
-                            onPressed: state.book.coins >= chapter.unlockCost
-                                ? () {
-                                    context
-                                        .read<BookBloc>()
-                                        .add(UnlockChapter(chapter.id));
-                                  }
-                                : null,
-                            child: Text('${chapter.unlockCost} coins'),
-                          ),
-                    onTap: chapter.isUnlocked
-                        ? () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => BookReaderScreen(
-                                  book: state.book,
-                                  initialChapterIndex: index,
-                                ),
+            body: Stack(
+              children: [
+                ListView.builder(
+                  itemCount: state.book.chapters.length,
+                  itemBuilder: (context, index) {
+                    final chapter = state.book.chapters[index];
+                    _unlockButtonKeys[index] = GlobalKey();
+                    
+                    return Card(
+                      margin: const EdgeInsets.all(8.0),
+                      child: ListTile(
+                        title: Text(chapter.title),
+                        subtitle: Text(
+                          chapter.isUnlocked
+                              ? '${chapter.pages.length} pages'
+                              : 'Unlock for ${chapter.unlockCost} coins',
+                        ),
+                        trailing: chapter.isUnlocked
+                            ? const Icon(Icons.arrow_forward_ios)
+                            : ElevatedButton(
+                                key: _unlockButtonKeys[index],
+                                onPressed: state.book.coins >= chapter.unlockCost
+                                    ? () {
+                                        final RenderBox? coinBalanceBox = _coinBalanceKey.currentContext?.findRenderObject() as RenderBox?;
+                                        final RenderBox? unlockButtonBox = _unlockButtonKeys[index]?.currentContext?.findRenderObject() as RenderBox?;
+                                        
+                                        if (coinBalanceBox != null && unlockButtonBox != null) {
+                                          final coinBalancePosition = coinBalanceBox.localToGlobal(Offset.zero) + const Offset(50, -30);
+                                          final unlockButtonPosition = unlockButtonBox.localToGlobal(Offset.zero) + const Offset(50, -30);
+                                          
+                                          showDialog(
+                                            context: context,
+                                            barrierColor: Colors.transparent,
+                                            builder: (context) => CoinAnimation(
+                                              startPosition: coinBalancePosition,
+                                              endPosition: unlockButtonPosition,
+                                              coinCount: chapter.unlockCost,
+                                              onComplete: () {
+                                                Navigator.pop(context);
+                                                context.read<BookBloc>().add(UnlockChapter(chapter.id));
+                                              },
+                                            ),
+                                          );
+                                        } else {
+                                          context.read<BookBloc>().add(UnlockChapter(chapter.id));
+                                        }
+                                      }
+                                    : null,
+                                child: Text('${chapter.unlockCost} coins'),
                               ),
-                            );
-                          }
-                        : null,
-                  ),
-                );
-              },
+                        onTap: chapter.isUnlocked
+                            ? () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => BookReaderScreen(
+                                      book: state.book,
+                                      initialChapterIndex: index,
+                                    ),
+                                  ),
+                                );
+                              }
+                            : null,
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           );
         }

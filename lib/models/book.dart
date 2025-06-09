@@ -8,7 +8,7 @@ class Book extends Equatable {
   const Book({
     required this.title,
     required this.chapters,
-    this.coins = 100,
+    this.coins = 300,
   });
 
   @override
