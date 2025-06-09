@@ -23,6 +23,7 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
   late PageController _pageController;
   late int _currentPageIndex;
   bool _isSlideMode = true;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -42,7 +43,22 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToCurrentPage() {
+    if (!_isSlideMode) {
+      // Calculate the height of each page to scroll to the current position
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final pageHeight = MediaQuery.of(context).size.height;
+        _scrollController.animateTo(
+          _currentPageIndex * pageHeight,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeOutCubic,
+        );
+      });
+    }
   }
 
   @override
@@ -60,6 +76,7 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                   onPressed: () {
                     setState(() {
                       _isSlideMode = !_isSlideMode;
+                      _scrollToCurrentPage();
                     });
                   },
                   tooltip: _isSlideMode ? 'Switch to Scroll Mode' : 'Switch to Slide Mode',
@@ -94,6 +111,7 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
       );
     } else {
       return SingleChildScrollView(
+        controller: _scrollController,
         child: Column(
           children: List.generate(
             _getTotalPages(book),
