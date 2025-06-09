@@ -16,4 +16,13 @@ class UnlockChapter extends BookEvent {
 
   @override
   List<Object?> get props => [chapterId];
+}
+
+class DeductCoins extends BookEvent {
+  final int amount;
+
+  const DeductCoins(this.amount);
+
+  @override
+  List<Object?> get props => [amount];
 } 

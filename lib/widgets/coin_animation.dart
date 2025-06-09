@@ -5,6 +5,7 @@ class CoinAnimation extends StatefulWidget {
   final Offset endPosition;
   final int coinCount;
   final VoidCallback onComplete;
+  final Function(int) onCoinDeducted;
 
   const CoinAnimation({
     super.key,
@@ -12,6 +13,7 @@ class CoinAnimation extends StatefulWidget {
     required this.endPosition,
     required this.coinCount,
     required this.onComplete,
+    required this.onCoinDeducted,
   });
 
   @override
@@ -22,6 +24,7 @@ class _CoinAnimationState extends State<CoinAnimation> with SingleTickerProvider
   late AnimationController _controller;
   late Animation<double> _animation;
   final List<CoinAnimationItem> _coins = [];
+  int _coinsDeducted = 0;
 
   @override
   void initState() {
@@ -46,6 +49,10 @@ class _CoinAnimationState extends State<CoinAnimation> with SingleTickerProvider
     }
 
     _controller.forward().then((_) {
+      // Ensure all coins are deducted
+      if (_coinsDeducted < widget.coinCount) {
+        widget.onCoinDeducted(widget.coinCount - _coinsDeducted);
+      }
       widget.onComplete();
     });
   }
@@ -68,6 +75,13 @@ class _CoinAnimationState extends State<CoinAnimation> with SingleTickerProvider
 
             final adjustedProgress = (progress - coin.delay) / (1 - coin.delay);
             final position = coin.getPosition(adjustedProgress);
+
+            // Deduct coins sequentially
+            final coinIndex = _coins.indexOf(coin);
+            if (coinIndex > _coinsDeducted - 1 && adjustedProgress > 0.1) {
+              _coinsDeducted++;
+              widget.onCoinDeducted(1);
+            }
 
             return Positioned(
               left: position.dx,

@@ -215,7 +215,12 @@ class _ChapterListScreenState extends State<ChapterListScreen> {
                                               coinCount: chapter.unlockCost,
                                               onComplete: () {
                                                 Navigator.pop(context);
-                                                context.read<BookBloc>().add(UnlockChapter(chapter.id));
+                                                if (state.book.coins >= chapter.unlockCost) {
+                                                  context.read<BookBloc>().add(UnlockChapter(chapter.id));
+                                                }
+                                              },
+                                              onCoinDeducted: (amount) {
+                                                context.read<BookBloc>().add(DeductCoins(amount));
                                               },
                                             ),
                                           );

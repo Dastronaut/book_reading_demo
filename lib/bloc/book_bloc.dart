@@ -7,6 +7,7 @@ class BookBloc extends Bloc<BookEvent, BookState> {
   BookBloc() : super(BookInitial()) {
     on<LoadBook>(_onLoadBook);
     on<UnlockChapter>(_onUnlockChapter);
+    on<DeductCoins>(_onDeductCoins);
   }
 
   void _onLoadBook(LoadBook event, Emitter<BookState> emit) async {
@@ -199,18 +200,34 @@ And the unyielding knowledge that some embers, no matter how faint, never truly 
 
       if (chapterIndex != -1) {
         final chapter = book.chapters[chapterIndex];
-        if (!chapter.isUnlocked && book.coins >= chapter.unlockCost) {
+        if (!chapter.isUnlocked) {
           final updatedChapters = List<Chapter>.from(book.chapters);
           updatedChapters[chapterIndex] = chapter.copyWith(isUnlocked: true);
 
           final updatedBook = Book(
             title: book.title,
             chapters: updatedChapters,
-            coins: book.coins - chapter.unlockCost,
+            coins: book.coins,
           );
 
           emit(BookLoaded(updatedBook));
         }
+      }
+    }
+  }
+
+  void _onDeductCoins(DeductCoins event, Emitter<BookState> emit) {
+    if (state is BookLoaded) {
+      final currentState = state as BookLoaded;
+      final book = currentState.book;
+      
+      if (book.coins >= event.amount) {
+        final updatedBook = Book(
+          title: book.title,
+          chapters: book.chapters,
+          coins: book.coins - event.amount,
+        );
+        emit(BookLoaded(updatedBook));
       }
     }
   }
